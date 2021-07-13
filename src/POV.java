@@ -87,7 +87,6 @@ public class POV {
 
 
         //C3: to define the length of the sequence: Last slot
-
         int[] vectorDemand = new int[nbOptions];
         IntegerVariable[][] optPosArray;
         for (int o = 0; o < nbOptions; o++) {
@@ -101,7 +100,6 @@ public class POV {
                 optPosArray[o][p] = catOnPos[o][p];
             }
 
-
             IntegerVariable c = Choco.makeIntVar("x", 1, 1);
             //m.addConstraint(Choco.geq(optPosArray[o], sum(vectorDemand[o]- maxCarsPerStation[o]*(o+1))));
             Choco.sum(Choco.minus(vectorDemand[o], Choco.mult(maxCarsPerStation[o], Choco.plus(o, c))));
@@ -114,22 +112,40 @@ public class POV {
         s.solve();
 
 
+        /* Print Solution */
+
         int t = 1;
         //do {
-
         System.out.println("Solution : "+t);
 
-        System.out.println("Classe || Options requises");
+        //Affichage Page 6
+        /*System.out.println("Classe || Options requises");
         for (int p = 0; p < nbPositions; p++) {
             System.out.print("  "+s.getVar(position[p]).getVal() +"\t   ||\t");
             for (int c = 0; c < nbOptions; c++) {  //nbCategories
-                /*if (s.getVar(catOnPos[c][p]).getVal()==1){
-                    System.out.println(c+" ");
-                    break;
-                }*/
                 System.out.print(s.getVar(catOnPos[c][p]).getVal() +" ");
             }
             System.out.println("");
+        }*/
+
+
+        //Affichage page 5
+        for (int p = 0; p < nbPositions; p++) {
+            if(p==0){
+                System.out.print("\t \t  ");
+            }
+            System.out.print(s.getVar(position[p]).getVal() +"  ");
+        }
+        System.out.println("");
+
+        int b=0;
+        while(b<nbOptions){
+            System.out.print((b+1)+" , "+StationSize[s.getVar(position[b]).getVal()] +"/"+maxCarsPerStation[s.getVar(position[b]).getVal()]+"   ");
+            for (int p = 0; p < nbPositions; p++) {
+                System.out.print(s.getVar(catOnPos[b][p]).getVal() +"  ");
+            }
+            System.out.println("");
+            b++;
         }
 
             t++;
