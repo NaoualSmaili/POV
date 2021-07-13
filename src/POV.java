@@ -56,16 +56,6 @@ public class POV {
         /* Constraints  */
 
         //C1: to satisfy the demand: Cardinality of configurations
-        for (int opt = 0; opt < nbOptions; opt++)
-            for (int i = 0; i < nbPositions - StationSize[opt]; i++) {
-                IntegerVariable[] v = new IntegerVariable[StationSize[opt]];
-                for (int j = 0; j < StationSize[opt]; j++)
-                    v[j] = catOnPos[opt][i + j];
-
-                m.addConstraint(Choco.leq(sum(v),maxCarsPerStation[opt]));
-            }
-
-
         int[] classes = new int[nbCategories];
         IntegerVariable[] classDemand = new IntegerVariable[nbCategories];
         for (int j = 0; j < nbCategories; j++) {
@@ -86,24 +76,15 @@ public class POV {
             }
 
 
-        //C3: to define the length of the sequence: Last slot
-        int[] vectorDemand = new int[nbOptions];
-        IntegerVariable[][] optPosArray;
-        for (int o = 0; o < nbOptions; o++) {
-            for (int c = 0; c < nbCategories; c++) {
-                vectorDemand[o] = nbCarsD[c] * options[c][o] + vectorDemand[o];
-            }
+        //C3: to define the length of the sequence:  Option constraint to assign catOnPos variable in a feasible way
+        for (int opt = 0; opt < nbOptions; opt++)
+            for (int i = 0; i < nbPositions - StationSize[opt]; i++) {
+                IntegerVariable[] v = new IntegerVariable[StationSize[opt]];
+                for (int j = 0; j < StationSize[opt]; j++)
+                    v[j] = catOnPos[opt][i + j];
 
-            int i1 = nbPositions - StationSize[o] * (o + 1);
-            optPosArray = new IntegerVariable[nbPositions][i1];
-            for (int p = 0; p < i1; p++) {
-                optPosArray[o][p] = catOnPos[o][p];
+                m.addConstraint(Choco.leq(sum(v),maxCarsPerStation[opt]));
             }
-
-            IntegerVariable c = Choco.makeIntVar("x", 1, 1);
-            //m.addConstraint(Choco.geq(optPosArray[o], sum(vectorDemand[o]- maxCarsPerStation[o]*(o+1))));
-            Choco.sum(Choco.minus(vectorDemand[o], Choco.mult(maxCarsPerStation[o], Choco.plus(o, c))));
-        }
 
 
         /* Solver.  */
