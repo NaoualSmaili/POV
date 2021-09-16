@@ -26,7 +26,7 @@ public class POV {
         int[] maxCarsPerStation = {2, 3, 3, 5, 5};
 
         // Categories properties.
-        int[] nbCarsD = {1, 1, 2, 2, 2, 2};
+        int[] nbCarsRequested = {1, 1, 2, 2, 2, 2};
         int[][] options =
                 {
                         {1, 0, 1, 1, 0},
@@ -48,42 +48,41 @@ public class POV {
         IntegerVariable[] position;
         position = makeIntVarArray("position", nbPositions, 0, nbCategories - 1);
 
-        // classOnPos[i][j] = 1 if category i is on position j
-        IntegerVariable[][] catOnPos;
-        catOnPos = makeIntVarArray("catOnPos", nbOptions, nbPositions, 0, 1);
+        // optOnPos[i][j] = 1 if option i is made on position j
+        IntegerVariable[][] optOnPos;
+        optOnPos = makeIntVarArray("optOnPos", nbOptions, nbPositions, 0, 1);
 
 
         /* Constraints  */
 
-        //C1: to satisfy the demand: Cardinality of configurations
-        int[] classes = new int[nbCategories];
-        IntegerVariable[] classDemand = new IntegerVariable[nbCategories];
+        //C1: to satisfy the demand
+        int[] categories = new int[nbCategories];
+        IntegerVariable[] categoryDemand = new IntegerVariable[nbCategories];
         for (int j = 0; j < nbCategories; j++) {
-            classes[j] = j;
-            classDemand[j] = makeIntVar("classDemand[" + j + "]", nbCarsD[j], nbCarsD[j]); // a constant: Create a constant variable equal to nbCarsD[j]
+            categories[j] = j;
+            categoryDemand[j] = makeIntVar("categoryDemand[" + j + "]", nbCarsRequested[j], nbCarsRequested[j]); // a constant: Create a constant variable equal to nbCarsRequested[j]
         }
-        m.addConstraint(globalCardinality(position, classes, classDemand));
+        m.addConstraint(globalCardinality(position, categories, categoryDemand));
 
 
-        //C2: to define the options that are used for each car in the sequence: Capacity of gliding windows
-        for (int cat = 0; cat < nbCategories; cat++)
-            for (int car = 0; car < nbPositions; car++) {
+        //C2: to define the options that are used for each car in the sequence
+        for (int i = 0; i < nbCategories; i++)
+            for (int j = 0; j < nbPositions; j++) {
                 Constraint[] C = new Constraint[nbOptions];
-                for (int op = 0; op < nbOptions; op++)
-                    C[op] = eq(catOnPos[op][car], options[cat][op]);
+                for (int k = 0; k < nbOptions; k++)
+                    C[k] = eq(optOnPos[k][j], options[i][k]);
 
-                m.addConstraint(ifOnlyIf(and(C),eq(position[car], cat)));
+                m.addConstraint(ifOnlyIf(and(C), eq(position[j], i)));
             }
 
 
-        //C3: to define the length of the sequence:  Option constraint to assign catOnPos variable in a feasible way
+        //C3: Option constraint to assign optOnPos variable in a feasible way
         for (int opt = 0; opt < nbOptions; opt++)
-            for (int i = 0; i < nbPositions - StationSize[opt]; i++) {
-                IntegerVariable[] v = new IntegerVariable[StationSize[opt]];
-                for (int j = 0; j < StationSize[opt]; j++)
-                    v[j] = catOnPos[opt][i + j];
+            for (int i = 0; i < nbPositions - maxCarsPerStation[opt]; i++) {
+                IntegerVariable[] v = new IntegerVariable[maxCarsPerStation[opt]];
+                System.arraycopy(optOnPos[opt], i + 0, v, 0, maxCarsPerStation[opt]);
 
-                m.addConstraint(Choco.leq(sum(v),maxCarsPerStation[opt]));
+                m.addConstraint(Choco.leq(sum(v), StationSize[opt]));
             }
 
 
@@ -97,37 +96,36 @@ public class POV {
 
         int t = 1;
         //do {
-        System.out.println("Solution : "+t);
+            System.out.println("Solution : " + t);
 
-        //Affichage Page 6
-        /*System.out.println("Classe || Options requises");
-        for (int p = 0; p < nbPositions; p++) {
-            System.out.print("  "+s.getVar(position[p]).getVal() +"\t   ||\t");
-            for (int c = 0; c < nbOptions; c++) {  //nbCategories
-                System.out.print(s.getVar(catOnPos[c][p]).getVal() +" ");
-            }
-            System.out.println("");
-        }*/
-
-
-        //Affichage page 5
-        for (int p = 0; p < nbPositions; p++) {
-            if(p==0){
-                System.out.print("\t \t  ");
-            }
-            System.out.print(s.getVar(position[p]).getVal() +"  ");
-        }
-        System.out.println("");
-
-        int b=0;
-        while(b<nbOptions){
-            System.out.print((b+1)+" , "+StationSize[s.getVar(position[b]).getVal()] +"/"+maxCarsPerStation[s.getVar(position[b]).getVal()]+"   ");
+            //View 1: page 5
             for (int p = 0; p < nbPositions; p++) {
-                System.out.print(s.getVar(catOnPos[b][p]).getVal() +"  ");
+                if (p == 0) {
+                    System.out.print("\t \t  ");
+                }
+                System.out.print(s.getVar(position[p]).getVal() + "  ");
             }
             System.out.println("");
-            b++;
-        }
+
+            int b = 0;
+            while (b < nbOptions) {
+                System.out.print((b + 1) + " , " + StationSize[b] + "/" + maxCarsPerStation[b] + "   ");
+                for (int k = 0; k < nbPositions; k++) {
+                    System.out.print(s.getVar(optOnPos[b][k]).getVal() + "  ");
+                }
+                System.out.println("");
+                b++;
+            }
+
+            //View 2: page 6
+            System.out.println("Classe || Options requises");
+            for (int p = 0; p < nbPositions; p++) {
+                System.out.print("  " + s.getVar(position[p]).getVal() + "\t   ||\t");
+                for (int c = 0; c < nbOptions; c++) {  //nbCategories
+                    System.out.print(s.getVar(optOnPos[c][p]).getVal() + " ");
+                }
+                System.out.println("");
+            }
 
             t++;
         //} while (s.nextSolution());
